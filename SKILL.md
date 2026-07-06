@@ -37,14 +37,15 @@ GET https://designskills.xyz/api/search?q=%E5%B0%8F%E7%BA%A2%E4%B9%A6
 Returns `{ results: [{ path, name, description, type, similarity, … }] }`, best match first.
 
 - Empty results → retry once with a use-case word: `presentation`, `landing page`, `mobile app`, `design system`, `branding`, `logo`, `social media`, `marketing`, `illustration`, `motion`, `video`, `3d`, `image generation`, `ui`, `design review`.
+- Results returned but none actually fit the brief (common with style-adjective queries like `warm minimalist`) → don't settle for the least-bad result: fetch the full catalog and compare `dna` fingerprints yourself (step 2).
 - To browse the whole catalog: `GET /api/skills` returns every skill with full metadata. Filter client-side on `domains` (use-case axis) and `type` (`Aesthetic` = how things look and feel; `Engineering` = how code is written).
 
 ## 2 · Evaluate before installing
 
 Look the skill up in `GET /api/skills` (match by `path`) and read:
 
-- **`dna`** — machine-readable style fingerprint: `colors` (hex), `font1`/`font2`, `colorWords`. Compare against the user's brief before reading any long docs.
-- **`securityScan`** — a 7-dimension static scan. `status: "passed"` → proceed. `"warning"` → read `dimensions[].flags` and judge. **Field missing → the skill is unscanned: say so to the user before installing.**
+- **`dna`** — machine-readable style fingerprint: `colors` (hex, **first color = the dominant/background tone**), `font1`/`font2`, and `colorWords` when present (sparse — derive temperature/mood from the hex values yourself). Compare against the user's brief before reading any long docs.
+- **`securityScan`** — a 7-dimension static scan. `status: "passed"` → proceed. `"warning"` → read `dimensions[].flags` and judge. **Field missing → the skill is unscanned: say so to the user before installing.** Also check `securityScan.source`: it names what was scanned (`SKILL.md` vs `README.md`); a README-only scan has not seen the installable payload, so weigh it lighter and always do the rule-1 skim after installing.
 - **`rating`** `{avg, count}` and **`stars`** — adoption and quality signals.
 - Human-readable page with JSON-LD: `https://designskills.xyz/s/{owner}/{repo}`.
 - The skill's full content lives in its GitHub repo (the `github` field) — read its `SKILL.md` there when you need a deep evaluation.
@@ -56,6 +57,8 @@ Run the entry's **`installCmd` verbatim — it is authoritative.** Skills inside
 ```
 npx skills add anthropics/skills --skill frontend-design
 ```
+
+Keep the command's repo and `--skill` arguments exactly as given. In a non-interactive shell (most agent environments) the bare command hangs on prompts and defaults to *project* scope — append `-g -a claude-code -y` for user-level scope, explicit agent target, and no prompts (swap `claude-code` for your runtime).
 
 No Node/npx in this environment? Fallback: get the repo's raw `SKILL.md` (from the `github` field) and save it into your skills directory — for Claude Code that is `~/.claude/skills/{skill-name}/SKILL.md`.
 
