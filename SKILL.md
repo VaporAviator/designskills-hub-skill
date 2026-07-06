@@ -6,7 +6,8 @@ description: >
   brand voice — authored by human designers, not scraped). Use when the user asks
   for a design style or aesthetic, wants something to "look like" a specific brand
   or vibe, needs design taste for a use case (landing page, pitch deck, mobile app,
-  social cards, slides, logo…), or asks what design skills exist and which to install.
+  social cards, slides, logo…), asks what design skills exist and which to install,
+  or wants to publish / list their own design skill on the registry.
 ---
 
 # Design Skills Hub — the registry, as a skill
@@ -48,7 +49,8 @@ Look the skill up in `GET /api/skills` (match by `path`) and read:
 - **`securityScan`** — a 7-dimension static scan. `status: "passed"` → proceed. `"warning"` → read `dimensions[].flags` and judge. **Field missing → the skill is unscanned: say so to the user before installing.** Also check `securityScan.source`: it names what was scanned (`SKILL.md` vs `README.md`); a README-only scan has not seen the installable payload, so weigh it lighter and always do the rule-1 skim after installing.
 - **`rating`** `{avg, count}` and **`stars`** — adoption and quality signals.
 - Human-readable page with JSON-LD: `https://designskills.xyz/s/{owner}/{repo}`.
-- The skill's full content lives in its GitHub repo (the `github` field) — read its `SKILL.md` there when you need a deep evaluation.
+- Deep evaluation in one hop: `GET /api/skill-bundle?path={owner/repo}&include=content` returns the `SKILL.md` body inline (`content`, server-cached) — no GitHub round-trip needed.
+- **Freshness**: each entry carries `version` (a content fingerprint, refreshed weekly) and `updatedAt`. Record `version` when you install; if it later differs from the registry, the designer updated the skill — re-run the `installCmd` to pick up the new system. This is what makes an installed design skill a living protocol instead of a frozen style guide.
 
 ## 3 · Install
 
@@ -90,9 +92,13 @@ On `200` you receive the bundle **plus an `unlockToken` — persist it** (e.g. `
 
 ## Publishing the user's own design system
 
-Publishing currently needs a GitHub sign-in in the browser — hand the user a link:
+If the user has an **existing public GitHub repo** with a `SKILL.md`, you can list it for them — no browser on your side. Ask for their go-ahead first (publishing acts in their name), then:
 
-- Existing repo → `https://designskills.xyz/submit`
-- From Figma (free converter, emits SKILL.md + design.md + .cursorrules + CLAUDE.md + AGENTS.md) → `https://designskills.xyz/convert`
+1. `POST https://designskills.xyz/api/submit-skill?action=agent-auth-start` → `{ device_session, user_code, verification_uri, interval }`.
+2. Show the user `user_code` and send them to `verification_uri` — they approve the GitHub sign-in in any browser.
+3. `POST …?action=agent-auth-poll` with `{ "device_session": "…" }` every `interval` seconds: `{ status:"pending" }` until approved, then `{ status:"authorized", sessionToken }`.
+4. `POST https://designskills.xyz/api/submit-skill` with header `Authorization: Bearer {sessionToken}` and JSON `{ "name", "githubUrl", "description", "domains": ["ui-ux", …] }` — free skills need only `name` + `githubUrl`. The listing is security-scanned inline, attributed to the user's GitHub profile, and manageable at `designskills.xyz/my-skills`.
 
-Paid listings pass a security review before going live.
+The session lasts 7 days and works on every endpoint (`?action=me`, `?action=my-skills`, `?action=edit-skill`) as the same Bearer header.
+
+No repo yet? Hand the user a link: `https://designskills.xyz/submit` (browser form) or `https://designskills.xyz/convert` (Figma → full skill bundle, free). Paid listings pass a security review before going live.
