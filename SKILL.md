@@ -46,7 +46,7 @@ Returns `{ results: [{ path, name, description, type, similarity, … }] }`, bes
 Look the skill up in `GET /api/skills` (match by `path`) and read:
 
 - **`dna`** — machine-readable style fingerprint: `colors` (hex, **first color = the dominant/background tone**), `font1`/`font2`, and `colorWords` when present (sparse — derive temperature/mood from the hex values yourself). Compare against the user's brief before reading any long docs.
-- **`securityScan`** — a 7-dimension static scan. `status: "passed"` → proceed. `"warning"` → read `dimensions[].flags` and judge. **Field missing → the skill is unscanned: say so to the user before installing.** Also check `securityScan.source`: it names what was scanned (`SKILL.md` vs `README.md`); a README-only scan has not seen the installable payload, so weigh it lighter and always do the rule-1 skim after installing.
+- **`securityScan`** — a 7-dimension static scan, always present. `status: "passed"` → proceed. `"warning"` → read `dimensions[].flags` and judge. `"unscanned"` → the registry could not reach the payload: say so to the user before installing. Check `securityScan.source` for coverage: `"payload"` means every text/code file the install lands on disk was scanned (`files` says how many); `"SKILL.md"`/`"README.md"` means a single-file scan — weigh it lighter. Either way, still do the rule-1 skim after installing (regex scanning is triage, not proof).
 - **`rating`** `{avg, count}` and **`stars`** — adoption and quality signals.
 - Human-readable page with JSON-LD: `https://designskills.xyz/s/{owner}/{repo}`.
 - Deep evaluation in one hop: `GET /api/skill-bundle?path={owner/repo}&include=content` returns the `SKILL.md` body inline (`content`, server-cached) — no GitHub round-trip needed.
